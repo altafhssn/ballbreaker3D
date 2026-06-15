@@ -1,0 +1,10 @@
+# match: stores App Store signing certs + profiles in a private git repo,
+# encrypted with MATCH_PASSWORD. First CI run auto-generates; subsequent
+# runs pull. Values flow in from GitHub Actions env vars.
+
+git_url(ENV["MATCH_GIT_URL"])
+git_basic_authorization(ENV["MATCH_GIT_BASIC_AUTHORIZATION"])
+storage_mode("git")
+type("appstore")
+app_identifier(["studio.strawhat.smashbreaker"])
+team_id(ENV["APPLE_TEAM_ID"])

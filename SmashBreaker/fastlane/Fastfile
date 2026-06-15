@@ -1,0 +1,66 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build and upload to TestFlight (called by GitHub Actions)"
+  lane :beta do
+    # 1. Make sure CI has a unlocked keychain to drop the signing cert into.
+    setup_ci
+
+    # 2. Pull (or generate on first run) the App Store distribution cert
+    #    and provisioning profile from the match repo.
+    match(
+      type: "appstore",
+      app_identifier: ENV["BUNDLE_ID"],
+      team_id: ENV["APPLE_TEAM_ID"],
+      readonly: false,
+      git_url: ENV["MATCH_GIT_URL"],
+      git_basic_authorization: ENV["MATCH_GIT_BASIC_AUTHORIZATION"]
+    )
+
+    # 3. Set the build number to (latest TestFlight build) + 1 so Apple
+    #    never rejects with "build already used".
+    next_build = latest_testflight_build_number(
+      app_identifier: ENV["BUNDLE_ID"],
+      api_key_path: ENV["APP_STORE_CONNECT_API_KEY_FILEPATH"],
+      initial_build_number: 0
+    ) + 1
+    UI.message("Setting build number to #{next_build}")
+
+    increment_build_number(
+      build_number: next_build.to_s,
+      xcodeproj: ENV["XCODE_PROJECT"]
+    )
+
+    # 4. Lock the team in the Xcode project (Godot writes it as a literal
+    #    string; without this, the build complains about ambiguous teams).
+    update_project_team(
+      path: ENV["XCODE_PROJECT"],
+      teamid: ENV["APPLE_TEAM_ID"]
+    )
+
+    # 5. Build and sign the .ipa using the just-fetched provisioning profile.
+    build_app(
+      project: ENV["XCODE_PROJECT"],
+      scheme: "SmashBreaker",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "../builds/ios",
+      output_name: "SmashBreaker.ipa",
+      clean: true,
+      export_options: {
+        provisioningProfiles: {
+          ENV["BUNDLE_ID"] => "match AppStore #{ENV['BUNDLE_ID']}"
+        }
+      }
+    )
+
+    # 6. Upload to TestFlight (beta channel — no auto-submit for review).
+    upload_to_testflight(
+      ipa: "../builds/ios/SmashBreaker.ipa",
+      api_key_path: ENV["APP_STORE_CONNECT_API_KEY_FILEPATH"],
+      skip_waiting_for_build_processing: true,
+      skip_submission: true,
+      changelog: "Automated CI build #{next_build}"
+    )
+  end
+end

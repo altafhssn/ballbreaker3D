@@ -1,0 +1,122 @@
+name: iOS Release
+
+# Triggers:
+#   - push a tag like v1.0.2  → release build → TestFlight
+#   - manual "Run workflow" button on the Actions tab
+#
+# Total runtime: ~8 min first run, ~6 min subsequent.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+jobs:
+  build-ios:
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    env:
+      GODOT_VERSION: 4.6.2-stable
+      PROJECT_PATH: SmashBreaker
+      IOS_BUILD_DIR: builds/ios
+      BUNDLE_ID: studio.strawhat.smashbreaker
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Godot
+        run: |
+          set -e
+          mkdir -p "$HOME/godot"
+          cd "$HOME/godot"
+          curl -fsSL -o godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_macos.universal.zip"
+          unzip -q godot.zip
+          echo "GODOT_BIN=$HOME/godot/Godot.app/Contents/MacOS/Godot" >> "$GITHUB_ENV"
+          "$HOME/godot/Godot.app/Contents/MacOS/Godot" --version || true
+
+      - name: Install iOS export template
+        run: |
+          set -e
+          DEST="$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}"
+          mkdir -p "$DEST"
+          cd "$HOME"
+          curl -fsSL -o templates.tpz \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz"
+          python3 - <<PY
+          import zipfile, os, shutil
+          dest = os.path.expanduser("$DEST")
+          with zipfile.ZipFile("templates.tpz") as z:
+              for n in z.namelist():
+                  if "ios" in n.lower() or n.endswith("version.txt"):
+                      with z.open(n) as src, open(os.path.join(dest, os.path.basename(n)), "wb") as dst:
+                          shutil.copyfileobj(src, dst)
+                          print("extracted", os.path.basename(n))
+          PY
+          ls -la "$DEST"
+
+      - name: Set Apple Team ID in export preset
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          sed -i '' "s/application\\/app_store_team_id=\".*\"/application\\/app_store_team_id=\"${TEAM_ID}\"/" \
+            "${PROJECT_PATH}/export_presets.cfg"
+          grep app_store_team_id "${PROJECT_PATH}/export_presets.cfg"
+
+      - name: Headless import
+        run: |
+          cd "${PROJECT_PATH}"
+          "$GODOT_BIN" --headless --import || true
+
+      - name: Export Xcode project
+        run: |
+          cd "${PROJECT_PATH}"
+          mkdir -p "../${IOS_BUILD_DIR}"
+          "$GODOT_BIN" --headless --export-release "iOS" "../${IOS_BUILD_DIR}/SmashBreaker.ipa" || true
+          ls -la "../${IOS_BUILD_DIR}"
+
+      - name: Set up Ruby + fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: false
+
+      - name: Install fastlane
+        run: gem install fastlane -N --no-document
+
+      - name: Decode App Store Connect API key
+        env:
+          ASC_KEY_BASE64: ${{ secrets.ASC_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          echo "$ASC_KEY_BASE64" | base64 --decode \
+            > "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          ls -la "$HOME/.appstoreconnect/private_keys"
+
+      - name: Build, sign and upload to TestFlight
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_FILEPATH: /Users/runner/.appstoreconnect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          BUNDLE_ID: ${{ env.BUNDLE_ID }}
+          XCODE_PROJECT: ../builds/ios/SmashBreaker.xcodeproj
+        working-directory: ${{ env.PROJECT_PATH }}
+        run: fastlane ios beta
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-log
+          path: |
+            ${{ env.PROJECT_PATH }}/fastlane/report.xml
+            ${{ env.PROJECT_PATH }}/fastlane/*.log
+          if-no-files-found: ignore
