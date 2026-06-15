@@ -55,7 +55,7 @@ platform :ios do
       scheme: "SmashBreaker",
       configuration: "Release",
       export_method: "app-store",
-      output_directory: "../builds/ios",
+      output_directory: ENV["IPA_OUTPUT_DIR"],
       output_name: "SmashBreaker.ipa",
       clean: true,
       export_options: {
@@ -67,7 +67,7 @@ platform :ios do
 
     # 7. Upload to TestFlight.
     upload_to_testflight(
-      ipa: "../builds/ios/SmashBreaker.ipa",
+      ipa: "#{ENV['IPA_OUTPUT_DIR']}/SmashBreaker.ipa",
       api_key: api_key,
       skip_waiting_for_build_processing: true,
       skip_submission: true,

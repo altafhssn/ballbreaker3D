@@ -3,8 +3,6 @@ name: iOS Release
 # Triggers:
 #   - push a tag like v1.0.2  → release build → TestFlight
 #   - manual "Run workflow" button on the Actions tab
-#
-# Total runtime: ~8 min first run, ~6 min subsequent.
 
 on:
   push:
@@ -73,10 +71,21 @@ jobs:
 
       - name: Export Xcode project
         run: |
+          set -e
           cd "${PROJECT_PATH}"
           mkdir -p "../${IOS_BUILD_DIR}"
+          # Godot iOS export with project_only=true produces the Xcode project
+          # (and its frameworks) alongside the .ipa path we name. Godot may
+          # exit with non-zero on warnings; we run it then verify the .xcodeproj
+          # actually showed up rather than trusting the exit code.
           "$GODOT_BIN" --headless --export-release "iOS" "../${IOS_BUILD_DIR}/SmashBreaker.ipa" || true
+          echo "=== Contents of ${IOS_BUILD_DIR}: ==="
           ls -la "../${IOS_BUILD_DIR}"
+          if [ ! -d "../${IOS_BUILD_DIR}/SmashBreaker.xcodeproj" ]; then
+            echo "::error::Godot export did not produce SmashBreaker.xcodeproj"
+            exit 1
+          fi
+          echo "✓ Xcode project produced"
 
       - name: Set up Ruby + fastlane
         uses: ruby/setup-ruby@v1
@@ -107,7 +116,9 @@ jobs:
           APP_STORE_CONNECT_API_KEY_FILEPATH: /Users/runner/.appstoreconnect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           BUNDLE_ID: ${{ env.BUNDLE_ID }}
-          XCODE_PROJECT: ../builds/ios/SmashBreaker.xcodeproj
+          # Absolute paths so they resolve regardless of fastlane's CWD.
+          XCODE_PROJECT: ${{ github.workspace }}/builds/ios/SmashBreaker.xcodeproj
+          IPA_OUTPUT_DIR: ${{ github.workspace }}/builds/ios
         working-directory: ${{ env.PROJECT_PATH }}
         run: fastlane ios beta
 
