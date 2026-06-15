@@ -44,14 +44,23 @@ jobs:
           cd "$HOME"
           curl -fsSL -o templates.tpz \
             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz"
-          # The .tpz is a zip with files inside a "templates/" directory.
-          # Extract just iOS + version.txt with plain unzip (no Python heredoc
-          # nonsense that YAML indentation breaks).
-          unzip -oq templates.tpz "templates/ios.zip" "templates/version.txt"
-          mv templates/ios.zip "$DEST/ios.zip"
-          mv templates/version.txt "$DEST/version.txt"
-          rm -rf templates templates.tpz
-          echo "=== Contents of $DEST: ==="
+          echo "=== templates.tpz first 30 entries: ==="
+          unzip -l templates.tpz | head -35
+          # Extract everything, then find ios.zip wherever it lives.
+          mkdir -p tpz_extracted
+          unzip -oq templates.tpz -d tpz_extracted
+          echo "=== extracted file tree: ==="
+          find tpz_extracted -maxdepth 3 -type f | head -20
+          IOS_ZIP=$(find tpz_extracted -name "ios.zip" | head -1)
+          VERSION_TXT=$(find tpz_extracted -name "version.txt" | head -1)
+          if [ -z "$IOS_ZIP" ]; then
+            echo "::error::ios.zip not found anywhere in templates.tpz"
+            exit 1
+          fi
+          cp "$IOS_ZIP" "$DEST/ios.zip"
+          [ -n "$VERSION_TXT" ] && cp "$VERSION_TXT" "$DEST/version.txt"
+          rm -rf tpz_extracted templates.tpz
+          echo "=== Final $DEST: ==="
           ls -la "$DEST"
           if [ ! -f "$DEST/ios.zip" ]; then
             echo "::error::ios.zip not installed at $DEST/ios.zip"
