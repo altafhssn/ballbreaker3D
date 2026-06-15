@@ -44,17 +44,20 @@ jobs:
           cd "$HOME"
           curl -fsSL -o templates.tpz \
             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz"
-          python3 - <<PY
-          import zipfile, os, shutil
-          dest = os.path.expanduser("$DEST")
-          with zipfile.ZipFile("templates.tpz") as z:
-              for n in z.namelist():
-                  if "ios" in n.lower() or n.endswith("version.txt"):
-                      with z.open(n) as src, open(os.path.join(dest, os.path.basename(n)), "wb") as dst:
-                          shutil.copyfileobj(src, dst)
-                          print("extracted", os.path.basename(n))
-          PY
+          # The .tpz is a zip with files inside a "templates/" directory.
+          # Extract just iOS + version.txt with plain unzip (no Python heredoc
+          # nonsense that YAML indentation breaks).
+          unzip -oq templates.tpz "templates/ios.zip" "templates/version.txt"
+          mv templates/ios.zip "$DEST/ios.zip"
+          mv templates/version.txt "$DEST/version.txt"
+          rm -rf templates templates.tpz
+          echo "=== Contents of $DEST: ==="
           ls -la "$DEST"
+          if [ ! -f "$DEST/ios.zip" ]; then
+            echo "::error::ios.zip not installed at $DEST/ios.zip"
+            exit 1
+          fi
+          echo "✓ iOS export template installed ($(du -h "$DEST/ios.zip" | cut -f1))"
 
       - name: Set Apple Team ID in export preset
         env:
