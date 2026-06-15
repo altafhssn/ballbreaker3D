@@ -16,7 +16,10 @@ jobs:
     timeout-minutes: 60
 
     env:
-      GODOT_VERSION: 4.6.2-stable
+      # NOTE: Godot's release URLs use "-stable" but its templates directory
+      # uses ".stable" — different separators. Keep both env vars.
+      GODOT_VERSION: 4.6.2-stable           # for download URLs
+      GODOT_TEMPLATES_VERSION: 4.6.2.stable  # for ~/Library/.../Godot/export_templates/<this>/
       PROJECT_PATH: SmashBreaker
       IOS_BUILD_DIR: builds/ios
       BUNDLE_ID: studio.strawhat.smashbreaker
@@ -39,7 +42,7 @@ jobs:
       - name: Install iOS export template
         run: |
           set -e
-          DEST="$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}"
+          DEST="$HOME/Library/Application Support/Godot/export_templates/${GODOT_TEMPLATES_VERSION}"
           mkdir -p "$DEST"
           cd "$HOME"
           curl -fsSL -o templates.tpz \
