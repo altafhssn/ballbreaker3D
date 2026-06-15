@@ -49,6 +49,21 @@ platform :ios do
       teamid: ENV["APPLE_TEAM_ID"]
     )
 
+    # 5b. Switch the project to MANUAL signing with our Distribution cert and
+    #     match-managed provisioning profile. Godot's exported project defaults
+    #     to automatic signing, which conflicts with the manual profile match
+    #     installs — Xcode's auto-signer refuses to coexist with a manually
+    #     specified Apple Distribution identity.
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: ENV["XCODE_PROJECT"],
+      team_id: ENV["APPLE_TEAM_ID"],
+      bundle_identifier: ENV["BUNDLE_ID"],
+      code_sign_identity: "Apple Distribution",
+      profile_name: "match AppStore #{ENV['BUNDLE_ID']}",
+      targets: ["SmashBreaker"]
+    )
+
     # 6. Build + sign.
     build_app(
       project: ENV["XCODE_PROJECT"],
