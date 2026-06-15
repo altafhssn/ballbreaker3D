@@ -1,0 +1,68 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/galaxy_map.gd" id="1"]
+[ext_resource type="Shader" path="res://shaders/menu_bg.gdshader" id="2"]
+
+[sub_resource type="ShaderMaterial" id="BgMat"]
+shader = ExtResource("2")
+shader_parameter/grid_strength = 0.2
+shader_parameter/star_density = 0.6
+
+[node name="GalaxyMap" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1")
+
+[node name="BG" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+material = SubResource("BgMat")
+
+[node name="Title" type="Label" parent="."]
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 36.0
+offset_bottom = 120.0
+text = "STAR CHART"
+horizontal_alignment = 1
+
+[node name="Stars" type="Label" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -420.0
+offset_top = 44.0
+offset_right = -60.0
+offset_bottom = 112.0
+text = "★ 0"
+horizontal_alignment = 2
+
+[node name="Scroll" type="ScrollContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 60.0
+offset_top = 160.0
+offset_right = -60.0
+offset_bottom = -140.0
+horizontal_scroll_mode = 0
+
+[node name="Grid" type="GridContainer" parent="Scroll"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+columns = 2
+theme_override_constants/h_separation = 28
+theme_override_constants/v_separation = 28
+
+[node name="Back" type="Button" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 320.0
+offset_top = -116.0
+offset_right = -320.0
+offset_bottom = -36.0
+text = "BACK"

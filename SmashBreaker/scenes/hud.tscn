@@ -1,0 +1,66 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/hud.gd" id="1"]
+
+[node name="Hud" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1")
+
+[node name="LevelChip" type="PanelContainer" parent="."]
+anchors_preset = 0
+offset_left = 40.0
+offset_top = 28.0
+offset_right = 480.0
+offset_bottom = 92.0
+
+[node name="Level" type="Label" parent="LevelChip"]
+text = "SECTOR 01"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CenterChip" type="PanelContainer" parent="."]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -260.0
+offset_top = 104.0
+offset_right = 260.0
+offset_bottom = 168.0
+
+[node name="H" type="HBoxContainer" parent="CenterChip"]
+alignment = 1
+theme_override_constants/separation = 32
+
+[node name="Lives" type="Label" parent="CenterChip/H"]
+text = "● ● ●"
+vertical_alignment = 1
+
+[node name="Sep" type="Label" parent="CenterChip/H"]
+text = "|"
+vertical_alignment = 1
+
+[node name="Score" type="Label" parent="CenterChip/H"]
+text = "0"
+vertical_alignment = 1
+
+[node name="Pause" type="Button" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -130.0
+offset_top = 24.0
+offset_right = -40.0
+offset_bottom = 96.0
+text = "❚❚"
+flat = true
+
+[node name="PowerUps" type="HBoxContainer" parent="."]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 180.0
+offset_right = 300.0
+offset_bottom = 228.0
+alignment = 1
+theme_override_constants/separation = 16

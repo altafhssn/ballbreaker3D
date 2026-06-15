@@ -1,0 +1,34 @@
+# Godot internals
+.godot/
+*.tmp
+*.import.cache
+
+# Build outputs — large, regenerable
+builds/
+SmashBreaker/android/build/
+
+# Signing material — NEVER COMMIT
+keystore/
+**/*.keystore
+**/*.jks
+**/*.p8
+**/*.p12
+**/*.mobileprovision
+
+# Fastlane intermediates
+SmashBreaker/fastlane/report.xml
+SmashBreaker/fastlane/README.md
+SmashBreaker/fastlane/*.log
+SmashBreaker/fastlane/test_output/
+SmashBreaker/fastlane/screenshots/
+
+# Editor + OS noise
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Python build helper outputs
+__pycache__/
+*.pyc
